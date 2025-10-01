@@ -36,6 +36,13 @@ def doc_to_row(doc):
 
 ##########################################################################################################
 
+from fastapi.responses import RedirectResponse
+
+@app.get("/")
+async def root():
+    return RedirectResponse(url="/inventory")
+
+
 # --- PRODUCTS ---
 @app.get("/products", response_class=HTMLResponse)
 async def products_page(request: Request):
@@ -746,4 +753,5 @@ async def reports_page(
         "start_date": start_date,
         "end_date": end_date
     })
+
 
