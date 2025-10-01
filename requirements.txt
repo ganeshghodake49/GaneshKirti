@@ -5,3 +5,9 @@ google-cloud-firestore
 python-dateutil
 pydantic
 typing-extensions
+firebase-admin
+python-multipart
+aiofiles
+python-dotenv
+
+
