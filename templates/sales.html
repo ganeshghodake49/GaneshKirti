@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+{% block content %}
+<h3>💵 Sales</h3>
+
+<!-- Tabs -->
+<ul class="nav nav-tabs mb-3" id="salesTabs" role="tablist">
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="new-tab" data-bs-toggle="tab" data-bs-target="#new-entry" type="button" role="tab">New Sale</button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="filter-tab" data-bs-toggle="tab" data-bs-target="#filter" type="button" role="tab">Filter Sales</button>
+  </li>
+</ul>
+
+<div class="tab-content">
+  <!-- New Sale -->
+  <div class="tab-pane fade" id="new-entry" role="tabpanel">
+    <form action="/sales/add" method="post" class="row g-2 align-items-end mb-4">
+      <div class="col-auto" style="min-width:150px">
+        <label class="form-label small text-muted mb-1">Date & Time</label>
+        <input type="datetime-local" name="date" class="form-control form-control-sm" value="{{ today }}" required>
+      </div>
+
+      <div class="col-auto" style="min-width:220px">
+        <label class="form-label small text-muted mb-1">Product</label>
+        <select name="product" id="product-select" class="form-select form-select-sm" required>
+          {% for p in products %}
+            <option value="{{ p.name }}" data-unit="{{ p.unit | default('kg') }}">{{ p.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="col-auto" style="min-width:100px">
+        <label class="form-label small text-muted mb-1">Qty</label>
+        <input type="number" name="quantity" step="0.01" class="form-control form-control-sm" placeholder="Qty" required>
+      </div>
+
+      <div class="col-auto" style="min-width:100px">
+        <label class="form-label small text-muted mb-1">Unit</label>
+        <select name="unit" id="unit-select" class="form-select form-select-sm" required>
+          <option>kg</option>
+          <option>ltr</option>
+          <option>nos</option>
+        </select>
+      </div>
+
+      <div class="col-auto" style="min-width:120px">
+        <label class="form-label small text-muted mb-1">Price/unit</label>
+        <input type="number" name="price" step="0.01" class="form-control form-control-sm" placeholder="Price/unit" required>
+      </div>
+
+      <div class="col-auto" style="min-width:180px">
+        <label class="form-label small text-muted mb-1">Party</label>
+        <input type="text" name="party" class="form-control form-control-sm" placeholder="Party Name" required>
+      </div>
+
+      <div class="col-auto" style="min-width:120px">
+        <label class="form-label small text-muted mb-1">Advance</label>
+        <input type="number" name="advance" step="0.01" class="form-control form-control-sm" placeholder="Advance" value="0">
+      </div>
+
+      <div class="col-auto" style="min-width:90px">
+        <label class="form-label small text-muted mb-1">&nbsp;</label>
+        <button class="btn btn-success btn-sm w-100">Add</button>
+      </div>
+    </form>
+
+    <!-- Table for Today's Sales -->
+    <div id="new-sales-container" style="max-height: 600px; overflow-y: auto;">
+      <table class="table table-striped" id="new-sales-table">
+        <thead class="table-light" style="position: sticky; top: 0; z-index: 2;">
+          <tr>
+            <th>Date & Time</th>
+            <th>Product</th>
+            <th>Qty</th>
+            <th>Unit</th>
+            <th>Price</th>
+            <th>Total</th>
+            <th>Party</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in sales %}
+          <tr>
+            <td>{{ s.date }}</td>
+            <td>{{ s.product }}</td>
+            <td>{{ s.quantity }}</td>
+            <td>{{ s.unit }}</td>
+            <td>{{ '%.2f'|format(s.price|float) }}</td>
+            <td>{{ '%.2f'|format(s.total|float) }}</td>
+            <td>{{ s.party }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Filter Tab -->
+  <div class="tab-pane fade" id="filter" role="tabpanel">
+    <form method="get" action="/sales" class="row g-2 mb-4 align-items-end">
+      <input type="hidden" name="tab" value="filter">
+      <div class="col-auto" style="min-width:220px">
+        <label class="form-label small text-muted mb-1">Product</label>
+        <select name="product" class="form-select form-select-sm">
+          <option value="All">All</option>
+          {% for p in products %}
+          <option value="{{ p.name }}" {% if product_filter == p.name %}selected{% endif %}>{{ p.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="col-auto" style="min-width:200px">
+        <label class="form-label small text-muted mb-1">Start (date & time)</label>
+        <input type="datetime-local" name="start_datetime" class="form-control form-control-sm" value="{{ start_datetime }}">
+      </div>
+
+      <div class="col-auto" style="min-width:200px">
+        <label class="form-label small text-muted mb-1">End (date & time)</label>
+        <input type="datetime-local" name="end_datetime" class="form-control form-control-sm" value="{{ end_datetime }}">
+      </div>
+
+      <div class="col-auto" style="min-width:110px">
+        <button class="btn btn-primary btn-sm w-100">Apply</button>
+      </div>
+    </form>
+
+    <!-- Table for Filtered Sales -->
+    <div id="filter-sales-container" style="max-height: 600px; overflow-y: auto;">
+      <table class="table table-striped" id="filter-sales-table">
+        <thead class="table-light" style="position: sticky; top: 0; z-index: 2;">
+          <tr>
+            <th>Date & Time</th>
+            <th>Product</th>
+            <th>Qty</th>
+            <th>Unit</th>
+            <th>Price</th>
+            <th>Total</th>
+            <th>Party</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in sales %}
+          <tr>
+            <td>{{ s.date }}</td>
+            <td>{{ s.product }}</td>
+            <td>{{ s.quantity }}</td>
+            <td>{{ s.unit }}</td>
+            <td>{{ '%.2f'|format(s.price|float) }}</td>
+            <td>{{ '%.2f'|format(s.total|float) }}</td>
+            <td>{{ s.party }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function(){
+  // activate tab
+  const activeTab = "{{ active_tab }}";
+  if(activeTab === "filter"){
+    new bootstrap.Tab(document.getElementById('filter-tab')).show();
+  } else {
+    new bootstrap.Tab(document.getElementById('new-tab')).show();
+  }
+
+  // preferred unit logic for New Sale tab
+  const productSelect = document.getElementById('product-select');
+  const unitSelect = document.getElementById('unit-select');
+  function setPreferredUnit(){
+    const opt = productSelect.options[productSelect.selectedIndex];
+    const preferred = opt ? opt.dataset.unit : null;
+    if(preferred && !Array.from(unitSelect.options).some(o=>o.value===preferred)){
+      const tmp = document.createElement('option');
+      tmp.value = preferred;
+      tmp.text = preferred;
+      unitSelect.appendChild(tmp);
+    }
+    if(preferred) unitSelect.value = preferred;
+  }
+  if(productSelect){
+    setPreferredUnit();
+    productSelect.addEventListener('change', setPreferredUnit);
+  }
+});
+</script>
+{% endblock %}

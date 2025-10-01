@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% block content %}
+<h3>📦 Inventory</h3>
+
+<!-- Tabs -->
+<ul class="nav nav-tabs mb-3" id="inventoryTabs" role="tablist">
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="new-tab" data-bs-toggle="tab" data-bs-target="#new-entry" type="button" role="tab">New Inventory</button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="filter-tab" data-bs-toggle="tab" data-bs-target="#filter" type="button" role="tab">Filter Inventory</button>
+  </li>
+</ul>
+
+<div class="tab-content">
+  <!-- New Inventory -->
+  <div class="tab-pane fade" id="new-entry" role="tabpanel">
+    <form action="{{ url_for('add_inventory') }}" method="post" class="row g-3 mb-4">
+      <div class="col-md-3">
+        <input type="datetime-local" name="date" class="form-control" value="{{ today }}" required>
+      </div>
+      <div class="col-md-3">
+        <select name="product" class="form-select" required>
+          {% for p in products %}
+          <option value="{{ p.name }}">{{ p.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <input name="quantity" type="number" step="0.01" class="form-control" placeholder="Quantity" required>
+      </div>
+      <div class="col-md-2">
+        <select name="unit" class="form-select">
+          {% for u in ['kg','ltr','nos'] %}<option>{{ u }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <input type="text" name="party" class="form-control" placeholder="Party Name">
+      </div>
+      <div class="col-md-12 mt-2">
+        <button class="btn btn-primary">Add Inventory</button>
+      </div>
+    </form>
+
+    <table class="table table-striped">
+      <thead>
+        <tr><th>Date</th><th>Product</th><th>Qty</th><th>Unit</th><th>Party</th><th>Price</th><th>Total</th></tr>
+      </thead>
+      <tbody>
+        {% for r in inventory %}
+        <tr>
+          <td>{{ r.date }}</td>
+          <td>{{ r.product }}</td>
+          <td>{{ r.quantity }}</td>
+          <td>{{ r.unit }}</td>
+          <td>{{ r.party }}</td>
+          <td>{{ r.price }}</td>
+          <td>{{ r.total }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Filter Inventory -->
+  <div class="tab-pane fade" id="filter" role="tabpanel">
+    <form method="get" action="/inventory" class="row g-2 mb-4 align-items-end">
+      <input type="hidden" name="tab" value="filter">
+      <div class="col-md-3">
+        <label class="form-label small text-muted mb-1">Product</label>
+        <select name="product" class="form-select">
+          <option value="All">All</option>
+          {% for p in products %}
+            <option value="{{ p.name }}" {% if product_filter == p.name %}selected{% endif %}>{{ p.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label small text-muted mb-1">Party (contains)</label>
+        <input type="text" name="party" class="form-control" placeholder="Party" value="{{ party_filter }}">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label small text-muted mb-1">Start (date & time)</label>
+        <input type="datetime-local" name="start_datetime" class="form-control" value="{{ start_datetime }}">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label small text-muted mb-1">End (date & time)</label>
+        <input type="datetime-local" name="end_datetime" class="form-control" value="{{ end_datetime }}">
+      </div>
+      <div class="col-md-2 mt-2">
+        <button class="btn btn-primary w-100">Apply</button>
+      </div>
+    </form>
+
+    <div id="table-container" style="max-height:600px; overflow-y:auto;">
+      <table class="table table-striped">
+        <thead><tr><th>Date</th><th>Product</th><th>Qty</th><th>Unit</th><th>Party</th><th>Price</th><th>Total</th></tr></thead>
+        <tbody id="inventory-tbody">
+          {% for r in inventory %}
+          <tr>
+            <td>{{ r.date }}</td>
+            <td>{{ r.product }}</td>
+            <td>{{ r.quantity }}</td>
+            <td>{{ r.unit }}</td>
+            <td>{{ r.party }}</td>
+            <td>{{ r.price }}</td>
+            <td>{{ r.total }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function(){
+    const activeTab = "{{ active_tab }}";
+    const newTabBtn = document.getElementById('new-tab');
+    const filterTabBtn = document.getElementById('filter-tab');
+    const tabEl = (activeTab === "filter" ? filterTabBtn : newTabBtn);
+    if(tabEl){
+      const tab = new bootstrap.Tab(tabEl);
+      tab.show();
+    }
+
+    if (newTabBtn) {
+      newTabBtn.addEventListener('shown.bs.tab', function(e){
+        // always show today's inventory for New tab
+        window.history.replaceState(null,null,"/inventory?tab=new");
+      });
+    }
+});
+</script>
+{% endblock %}

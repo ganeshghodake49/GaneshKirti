@@ -1,0 +1,352 @@
+{% extends "base.html" %}
+{% block content %}
+<h3>📋 Orders</h3>
+
+<!-- Tabs -->
+<ul class="nav nav-tabs mb-3" id="orderTabs" role="tablist">
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="new-tab" data-bs-toggle="tab" data-bs-target="#new-entry" type="button" role="tab">New Order</button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="filter-tab" data-bs-toggle="tab" data-bs-target="#filter" type="button" role="tab">Filter Orders</button>
+  </li>
+</ul>
+
+<div class="tab-content">
+  <!-- New Order -->
+  <div class="tab-pane fade" id="new-entry" role="tabpanel">
+    <form action="/orders/add" method="post" class="row g-2 align-items-end mb-4">
+      <div class="col-auto" style="min-width:150px">
+        <label class="form-label small text-muted mb-1">Date & Time</label>
+        <input type="datetime-local" name="date" class="form-control form-control-sm" value="{{ today }}" required>
+      </div>
+
+      <div class="col-auto" style="min-width:220px">
+        <label class="form-label small text-muted mb-1">Product</label>
+        <select name="product" id="product-select" class="form-select form-select-sm" required>
+          {% for p in products %}
+            <option value="{{ p.name }}" data-unit="{{ p.unit | default('kg') }}">{{ p.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="col-auto" style="min-width:100px">
+        <label class="form-label small text-muted mb-1">Qty</label>
+        <input type="number" name="quantity" step="0.01" class="form-control form-control-sm" placeholder="Qty" required>
+      </div>
+
+      <div class="col-auto" style="min-width:100px">
+        <label class="form-label small text-muted mb-1">Unit</label>
+        <select name="unit" id="unit-select" class="form-select form-select-sm" required>
+          <option>kg</option>
+          <option>ltr</option>
+          <option>nos</option>
+        </select>
+      </div>
+
+      <div class="col-auto" style="min-width:120px">
+        <label class="form-label small text-muted mb-1">Price/unit</label>
+        <input type="number" name="price" step="0.01" class="form-control form-control-sm" placeholder="Price/unit" required>
+      </div>
+
+      <div class="col-auto" style="min-width:180px">
+        <label class="form-label small text-muted mb-1">Party</label>
+        <input type="text" name="party" class="form-control form-control-sm" placeholder="Party Name" required>
+      </div>
+
+      <div class="col-auto" style="min-width:120px">
+        <label class="form-label small text-muted mb-1">Advance</label>
+        <input type="number" name="advance" step="0.01" class="form-control form-control-sm" placeholder="Advance" value="0">
+      </div>
+
+      <div class="col-auto" style="min-width:90px">
+        <label class="form-label small text-muted mb-1">&nbsp;</label>
+        <button class="btn btn-success btn-sm w-100">Add</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Filter -->
+  <div class="tab-pane fade" id="filter" role="tabpanel">
+    <form method="get" action="/orders" class="row g-2 mb-4 align-items-end">
+      <input type="hidden" name="tab" value="filter">
+
+      <div class="col-auto" style="min-width:220px">
+        <label class="form-label small text-muted mb-1">Product</label>
+        <select name="product" id="filter-product" class="form-select form-select-sm">
+          <option value="All">All</option>
+          {% for p in products %}
+            <option value="{{ p.name }}" {% if product_filter == p.name %}selected{% endif %}>{{ p.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="col-auto" style="min-width:220px">
+        <label class="form-label small text-muted mb-1">Party (contains)</label>
+        <input type="text" name="party" id="filter-party" class="form-control form-control-sm" placeholder="Party" value="{{ party_filter }}">
+      </div>
+
+      <div class="col-auto" style="min-width:160px">
+        <label class="form-label small text-muted mb-1">Status</label>
+        <select name="status" id="filter-status" class="form-select form-select-sm">
+          <option value="All" {% if status_filter == 'All' %}selected{% endif %}>All</option>
+          <option value="Pending" {% if status_filter == 'Pending' %}selected{% endif %}>Pending</option>
+          <option value="Completed" {% if status_filter == 'Completed' %}selected{% endif %}>Completed</option>
+          <option value="Cancelled" {% if status_filter == 'Cancelled' %}selected{% endif %}>Cancelled</option>
+        </select>
+      </div>
+
+      <div class="col-auto" style="min-width:200px">
+        <label class="form-label small text-muted mb-1">Start (date & time)</label>
+        <input type="datetime-local" name="start_datetime" class="form-control form-control-sm" value="{{ start_datetime }}">
+      </div>
+
+      <div class="col-auto" style="min-width:200px">
+        <label class="form-label small text-muted mb-1">End (date & time)</label>
+        <input type="datetime-local" name="end_datetime" class="form-control form-control-sm" value="{{ end_datetime }}">
+      </div>
+
+      <div class="col-auto" style="min-width:110px">
+        <button class="btn btn-primary btn-sm w-100">Apply</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Scrollable table with fixed header -->
+<div id="table-container" style="max-height: 600px; overflow-y: auto;">
+  <table class="table table-striped" id="orders-table">
+    <thead class="table-light" style="position: sticky; top: 0; z-index: 2;">
+      <tr>
+        <th>Date & Time</th>
+        <th>Product</th>
+        <th>Qty</th>
+        <th>Unit</th>
+        <th>Price</th>
+        <th>Total</th>
+        <th>Party</th>
+        <th>Advance</th>
+        <th>Paid Amount</th>
+        <th>Remain Amount</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody id="orders-tbody">
+      {% for o in orders %}
+      <tr data-id="{{ o.id }}" data-date-iso="{{ o.date_iso }}">
+        <td class="dt-cell">{{ o.date }}</td>
+        <td>{{ o.product }}</td>
+        <td>{{ o.quantity }}</td>
+        <td>{{ o.unit }}</td>
+        <td>{{ '%.2f'|format(o.price|float) }}</td>
+        <td>{{ '%.2f'|format(o.total|float) }}</td>
+        <td>{{ o.party }}</td>
+        <td class="advance-cell">
+          <input type="number" step="0.01" class="form-control advance-input form-control-sm" value="{{ '%.2f'|format(o.advance|float) }}">
+        </td>
+        <td>
+          <input type="number" step="0.01" class="form-control paid-input form-control-sm" value="{{ '%.2f'|format(o.paid_amount|float) }}">
+        </td>
+        <td>
+          <input type="number" step="0.01" class="form-control remain-input form-control-sm" value="{{ '%.2f'|format(o.remain_amount|float) }}" readonly>
+        </td>
+        <td>
+          <select class="form-select status-select form-select-sm">
+            <option value="Pending" {% if o.status=='Pending' %}selected{% endif %}>Pending</option>
+            <option value="Completed" {% if o.status=='Completed' %}selected{% endif %}>Completed</option>
+            <option value="Cancelled" {% if o.status=='Cancelled' %}selected{% endif %}>Cancelled</option>
+          </select>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div id="loading" class="text-center my-2" style="display:none;">Loading...</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function(){
+    // activate the tab as before
+    const activeTab = "{{ active_tab }}";
+    const newTabBtn = document.getElementById('new-tab');
+    const filterTabBtn = document.getElementById('filter-tab');
+    const tabEl = (activeTab === "filter" ? filterTabBtn : newTabBtn);
+    if(tabEl){
+      const tab = new bootstrap.Tab(tabEl);
+      tab.show();
+    }
+    if (newTabBtn) {
+      newTabBtn.addEventListener('shown.bs.tab', function (e) {
+        const params = new URLSearchParams(window.location.search);
+        const isAlreadyNew = params.get('tab') === 'new' && !params.get('start_datetime') && !params.get('end_datetime') && !params.get('product') && !params.get('party') && !params.get('status');
+        if (!isAlreadyNew) {
+          window.location.href = '/orders?tab=new';
+        }
+      });
+    }
+
+    // preferred unit logic for New Order product selection
+    const productSelect = document.getElementById('product-select');
+    const unitSelect = document.getElementById('unit-select');
+    function setPreferredUnitForSelectedProduct() {
+      const opt = productSelect.options[productSelect.selectedIndex];
+      const preferred = opt ? opt.dataset.unit : null;
+      if (preferred) {
+        if (!Array.from(unitSelect.options).some(o => o.value === preferred)) {
+          const tmp = document.createElement('option');
+          tmp.value = preferred;
+          tmp.text = preferred;
+          unitSelect.appendChild(tmp);
+        }
+        unitSelect.value = preferred;
+      }
+    }
+    if (productSelect) {
+      setPreferredUnitForSelectedProduct();
+      productSelect.addEventListener('change', setPreferredUnitForSelectedProduct);
+    }
+
+    // infinite scroll / fetch next pages — include product/party/status filters
+    const pageSize = {{ page_size }};
+    let lastCursor = null;
+    let loading = false;
+    let hasMore = {{ 'true' if has_more_initial else 'false' }};
+
+    const tbody = document.getElementById('orders-tbody');
+    const renderedRows = tbody.querySelectorAll('tr[data-date-iso]');
+    if (renderedRows.length){
+      lastCursor = renderedRows[renderedRows.length - 1].dataset.dateIso;
+    }
+
+    const tableContainer = document.getElementById('table-container');
+    const loadingEl = document.getElementById('loading');
+
+    function showLoading(on){ loadingEl.style.display = on ? 'block' : 'none'; }
+
+    async function fetchNext(){
+      if (loading || !hasMore) return;
+      loading = true;
+      showLoading(true);
+
+      const params = new URLSearchParams(window.location.search);
+      // read current filter values from the filter controls (they may be changed without submitting)
+      const start_dt = params.get('start_datetime') || "{{ start_datetime }}";
+      const end_dt = params.get('end_datetime') || "{{ end_datetime }}";
+      const product = document.getElementById('filter-product').value || "{{ product_filter }}";
+      const party = document.getElementById('filter-party').value || "{{ party_filter }}";
+      const status = document.getElementById('filter-status').value || "{{ status_filter }}";
+
+      const url = new URL(window.location.origin + '/orders/data');
+      url.searchParams.set('limit', pageSize);
+      if (start_dt) url.searchParams.set('start_datetime', start_dt);
+      if (end_dt) url.searchParams.set('end_datetime', end_dt);
+      if (lastCursor) url.searchParams.set('last_date_iso', lastCursor);
+      if (product) url.searchParams.set('product', product);
+      if (party) url.searchParams.set('party', party);
+      if (status) url.searchParams.set('status', status);
+
+      try {
+        const res = await fetch(url.toString());
+        const js = await res.json();
+        const rows = js.orders || [];
+        for (const o of rows){
+          const tr = document.createElement('tr');
+          tr.dataset.id = o.id;
+          tr.dataset.dateIso = o.date_iso || "";
+          tr.innerHTML = `
+            <td class="dt-cell">${o.date}</td>
+            <td>${o.product}</td>
+            <td>${o.quantity}</td>
+            <td>${o.unit}</td>
+            <td>${Number(o.price).toFixed(2)}</td>
+            <td>${Number(o.total).toFixed(2)}</td>
+            <td>${o.party||''}</td>
+            <td class="advance-cell"><input type="number" step="0.01" class="form-control advance-input form-control-sm" value="${Number(o.advance||0).toFixed(2)}"></td>
+            <td><input type="number" step="0.01" class="form-control paid-input form-control-sm" value="${Number(o.paid_amount||0).toFixed(2)}"></td>
+            <td><input type="number" step="0.01" class="form-control remain-input form-control-sm" value="${Number(o.remain_amount||0).toFixed(2)}" readonly></td>
+            <td>
+              <select class="form-select status-select form-select-sm">
+                <option value="Pending"${o.status==='Pending'?' selected':''}>Pending</option>
+                <option value="Completed"${o.status==='Completed'?' selected':''}>Completed</option>
+                <option value="Cancelled"${o.status==='Cancelled'?' selected':''}>Cancelled</option>
+              </select>
+            </td>
+          `;
+          tbody.appendChild(tr);
+          attachListeners(tr);
+        }
+        lastCursor = js.next_cursor || lastCursor;
+        hasMore = js.has_more;
+      } catch(err){
+        console.error("fetchNext error", err);
+      } finally {
+        loading = false;
+        showLoading(false);
+      }
+    }
+
+    tableContainer.addEventListener('scroll', ()=>{
+      const threshold = 150;
+      if (tableContainer.scrollTop + tableContainer.clientHeight + threshold >= tableContainer.scrollHeight){
+        fetchNext();
+      }
+    });
+
+    // row helpers & update logic
+    function recalcRow(row){
+      const total = parseFloat(row.querySelector('td:nth-child(6)').innerText||0);
+      const advance = parseFloat(row.querySelector('.advance-input').value || 0);
+      const paid = parseFloat(row.querySelector('.paid-input').value || 0);
+      const remain = (total - advance - paid);
+      row.querySelector('.remain-input').value = isNaN(remain) ? "0.00" : remain.toFixed(2);
+      return remain;
+    }
+
+    async function sendUpdate(row){
+      const id = row.dataset.id;
+      const paid = parseFloat(row.querySelector('.paid-input').value||0);
+      const advance = parseFloat(row.querySelector('.advance-input').value||0);
+      const total = parseFloat(row.querySelector('td:nth-child(6)').innerText||0);
+      const remain = total - advance - paid;
+      row.querySelector('.remain-input').value = isNaN(remain) ? "0.00" : remain.toFixed(2);
+
+      const payload = {
+        paid_amount: paid,
+        remain_amount: remain,
+        advance: advance,
+        status: row.querySelector('.status-select').value
+      };
+      try {
+        await fetch(`/orders/${id}/update`, {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify(payload)
+        });
+      } catch(err){
+        console.error("update error", err);
+      }
+    }
+
+    function attachListeners(row){
+      const paid = row.querySelector('.paid-input');
+      const adv = row.querySelector('.advance-input');
+      const status = row.querySelector('.status-select');
+
+      paid.addEventListener('change', ()=> sendUpdate(row));
+      adv.addEventListener('change', ()=> sendUpdate(row));
+      status.addEventListener('change', ()=> sendUpdate(row));
+    }
+
+    // attach to initial rows
+    document.querySelectorAll('#orders-tbody tr').forEach(tr=>{
+      attachListeners(tr);
+      recalcRow(tr);
+    });
+
+    if ({{ 'true' if has_more_initial else 'false' }}) {
+      hasMore = true;
+    }
+});
+</script>
+{% endblock %}

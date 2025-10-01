@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block content %}
+<h3>📊 Reports</h3>
+
+<form method="get" class="row g-3 mb-4">
+  <div class="col-md-3">
+    <input type="date" name="start_date" class="form-control" value="{{ start_date }}">
+  </div>
+  <div class="col-md-3">
+    <input type="date" name="end_date" class="form-control" value="{{ end_date }}">
+  </div>
+  <div class="col-md-2">
+    <button class="btn btn-primary">Filter</button>
+  </div>
+</form>
+
+<div class="row mb-4">
+  <div class="col-md-3"><div class="card p-3">💰 Inventory Cost ₹<br>{{ inv_total }}</div></div>
+  <div class="col-md-3"><div class="card p-3">📈 Total Sales Cost ₹<br>{{ sales_total }}</div></div>
+  <div class="col-md-3"><div class="card p-3">📦 Inventory Added Qty<br>{{ inv_qty }}</div></div>
+  <div class="col-md-3"><div class="card p-3">🛒 Total Orders Qty<br>{{ orders_qty }}</div></div>
+</div>
+
+<h4>📦 Inventory Records</h4>
+<table class="table table-striped">
+  <thead><tr><th>Date</th><th>Product</th><th>Qty</th><th>Unit</th><th>Price</th><th>Total</th></tr></thead>
+  <tbody>
+    {% for i in inventory %}
+    <tr>
+      <td>{{ i.date }}</td><td>{{ i.product }}</td><td>{{ i.quantity }}</td>
+      <td>{{ i.unit }}</td><td>{{ i.price }}</td><td>{{ i.total }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<h4>💵 Sales Records</h4>
+<table class="table table-striped">
+  <thead><tr><th>Date</th><th>Product</th><th>Qty</th><th>Unit</th><th>Price</th><th>Total</th></tr></thead>
+  <tbody>
+    {% for s in sales %}
+    <tr>
+      <td>{{ s.date }}</td><td>{{ s.product }}</td><td>{{ s.quantity }}</td>
+      <td>{{ s.unit }}</td><td>{{ s.price }}</td><td>{{ s.total }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<h4>📋 Orders Records</h4>
+<table class="table table-striped">
+  <thead><tr><th>Date</th><th>Product</th><th>Qty</th><th>Unit</th><th>Price</th><th>Total</th><th>Party</th><th>Advance</th><th>Status</th></tr></thead>
+  <tbody>
+    {% for o in orders %}
+    <tr>
+      <td>{{ o.date }}</td><td>{{ o.product }}</td><td>{{ o.quantity }}</td><td>{{ o.unit }}</td>
+      <td>{{ o.price }}</td><td>{{ o.total }}</td><td>{{ o.party }}</td><td>{{ o.advance }}</td>
+      <td>
+        <select class="form-select status-select" data-id="{{ o.id }}">
+          {% for s in ['Pending','Completed','Cancelled'] %}
+          <option value="{{ s }}" {% if o.status==s %}selected{% endif %}>{{ s }}</option>
+          {% endfor %}
+        </select>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<script>
+document.querySelectorAll('.status-select').forEach(el=>{
+  el.addEventListener('change', async ()=>{
+    const id = el.dataset.id;
+    const status = el.value;
+    await fetch(`/orders/${id}/status`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({status})
+    });
+    alert("Order status updated!");
+  });
+});
+</script>
+
+{% endblock %}

@@ -1,0 +1,11 @@
+runtime: python310  # Python version
+
+entrypoint: gunicorn -w 4 -k uvicorn.workers.UvicornWorker app:app
+# - 'app:app' means FastAPI instance named 'app' in app.py
+# - '-w 4' = 4 worker processes
+# - '-k uvicorn.workers.UvicornWorker' = use Uvicorn worker for FastAPI
+
+instance_class: F1  # Free-tier instance
+automatic_scaling:
+  min_instances: 0
+  max_instances: 1

@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block content %}
+<h3>🧾 Product Master</h3>
+
+<table class="table table-striped mb-4">
+  <thead><tr><th>Product</th><th>Default Unit</th></tr></thead>
+  <tbody>
+    {% for p in products %}
+    <tr>
+      <td>{{ p.name }}</td>
+      <td>{{ p.unit }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<form action="/products/add" method="post" class="row g-3 align-items-end">
+  <div class="col-md-6">
+    <label class="form-label small text-muted mb-1">Product Name</label>
+    <input name="name" type="text" class="form-control" placeholder="Product Name" required>
+  </div>
+
+  <div class="col-md-4">
+    <label class="form-label small text-muted mb-1">Default Unit</label>
+    <div class="d-flex">
+      <select id="unit-select" name="unit" class="form-select me-2">
+        {% for u in units %}
+          <option value="{{ u }}">{{ u }}</option>
+        {% endfor %}
+        <option value="custom">Other (custom)</option>
+      </select>
+      <!-- hidden custom unit input, shown only when "Other" is chosen -->
+      <input id="custom-unit" name="custom_unit" type="text" class="form-control" placeholder="Custom unit (e.g. bottles)" style="display:none;">
+    </div>
+  </div>
+
+  <div class="col-md-2">
+    <button class="btn btn-success w-100">Add Product</button>
+  </div>
+</form>
+
+<script>
+document.addEventListener("DOMContentLoaded", function(){
+  const unitSelect = document.getElementById('unit-select');
+  const customInput = document.getElementById('custom-unit');
+
+  function toggleCustom(){
+    if (!unitSelect) return;
+    const isCustom = unitSelect.value === 'custom';
+    if (isCustom) {
+      customInput.style.display = 'block';
+      customInput.required = true;
+      customInput.focus();
+    } else {
+      customInput.style.display = 'none';
+      customInput.required = false;
+      customInput.value = '';
+    }
+  }
+
+  unitSelect?.addEventListener('change', toggleCustom);
+  toggleCustom();
+});
+</script>
+{% endblock %}
